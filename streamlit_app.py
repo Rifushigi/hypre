@@ -2,7 +2,6 @@ import streamlit as st
 import requests
 import pandas as pd
 import numpy as np
-import matplotlib.pyplot as plt
 
 API_URL = "http://localhost:8000"
 
@@ -208,13 +207,7 @@ if uploaded_file is not None:
                         
                         # --- Enhanced Probability Distribution Chart ---
                         st.subheader("Probability Distribution")
-                        fig, ax = plt.subplots(figsize=(10, 6))
-                        plt.hist(results_df['probability'], bins=20, alpha=0.7, color='skyblue', edgecolor='black')
-                        plt.xlabel('Probability of Hypertension')
-                        plt.ylabel('Number of Patients')
-                        plt.title('Distribution of Hypertension Prediction Probabilities')
-                        plt.grid(True, alpha=0.3)
-                        st.pyplot(fig)
+                        st.bar_chart(results_df['probability'])
                         
                         # --- Age Group Analysis ---
                         st.subheader("Prediction Distribution by Age Group")
