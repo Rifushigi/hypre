@@ -2,6 +2,7 @@ import streamlit as st
 import requests
 import pandas as pd
 import numpy as np
+import matplotlib.pyplot as plt
 
 API_URL = "http://localhost:8000"
 
@@ -193,11 +194,66 @@ if uploaded_file is not None:
                     if resp.status_code == 200:
                         results = resp.json()
                         st.success(f"Batch prediction completed for {results['total_patients']} patients.")
+                        
+                        # Create results dataframe with user-friendly labels
                         results_df = pd.DataFrame(results["predictions"])
-                        st.dataframe(results_df)
-                        # --- Visualisation: Histogram of Probabilities ---
-                        st.subheader("Batch Prediction Probability Distribution")
-                        st.bar_chart(results_df["probability"])
+                        results_df['prediction_label'] = results_df['prediction'].map({1: 'Hypertension', 0: 'No Hypertension'})
+                        results_df['confidence_level'] = results_df['confidence']
+                        
+                        # Display results with better formatting
+                        st.subheader("Batch Prediction Results")
+                        display_df = results_df[['patient_id', 'prediction_label', 'probability', 'confidence_level']].copy()
+                        display_df.columns = ['Patient ID', 'Prediction', 'Probability', 'Confidence']
+                        st.dataframe(display_df, use_container_width=True)
+                        
+                        # --- Enhanced Probability Distribution Chart ---
+                        st.subheader("Probability Distribution")
+                        fig, ax = plt.subplots(figsize=(10, 6))
+                        plt.hist(results_df['probability'], bins=20, alpha=0.7, color='skyblue', edgecolor='black')
+                        plt.xlabel('Probability of Hypertension')
+                        plt.ylabel('Number of Patients')
+                        plt.title('Distribution of Hypertension Prediction Probabilities')
+                        plt.grid(True, alpha=0.3)
+                        st.pyplot(fig)
+                        
+                        # --- Age Group Analysis ---
+                        st.subheader("Prediction Distribution by Age Group")
+                        # Add age groups to results
+                        age_data = df.copy()
+                        age_data['age_group'] = pd.cut(age_data['age'], bins=[0, 40, 50, 60, 100], labels=['<40', '40-50', '50-60', '60+'])
+                        age_data['prediction'] = results_df['prediction']
+                        age_data['prediction_label'] = results_df['prediction_label']
+                        
+                        # Create age group chart
+                        age_prediction = age_data.groupby(['age_group', 'prediction_label']).size().unstack(fill_value=0)
+                        st.bar_chart(age_prediction)
+                        
+                        # --- Gender Analysis ---
+                        st.subheader("Prediction Distribution by Gender")
+                        gender_data = df.copy()
+                        gender_data['sex_label'] = gender_data['sex'].map({1: 'Male', 0: 'Female'})
+                        gender_data['prediction'] = results_df['prediction']
+                        gender_data['prediction_label'] = results_df['prediction_label']
+                        
+                        # Create gender chart
+                        gender_prediction = gender_data.groupby(['sex_label', 'prediction_label']).size().unstack(fill_value=0)
+                        st.bar_chart(gender_prediction)
+                        
+                        # --- Summary Statistics ---
+                        st.subheader("Summary Statistics")
+                        col1, col2, col3, col4 = st.columns(4)
+                        with col1:
+                            st.metric("Total Patients", len(results_df))
+                        with col2:
+                            hypertension_count = (results_df['prediction'] == 1).sum()
+                            st.metric("Hypertension Cases", hypertension_count)
+                        with col3:
+                            no_hypertension_count = (results_df['prediction'] == 0).sum()
+                            st.metric("No Hypertension", no_hypertension_count)
+                        with col4:
+                            avg_prob = results_df['probability'].mean()
+                            st.metric("Average Probability", f"{avg_prob:.3f}")
+                        
                         # Save to session history
                         st.session_state["batch_history"].append({"input": df, "results": results_df})
                     else:
@@ -215,7 +271,9 @@ if st.session_state["batch_history"]:
             st.write("Input Data:")
             st.dataframe(entry["input"].head())
             st.write("Results:")
-            st.dataframe(entry["results"])
+            display_df = entry["results"][['patient_id', 'prediction_label', 'probability', 'confidence_level']].copy()
+            display_df.columns = ['Patient ID', 'Prediction', 'Probability', 'Confidence']
+            st.dataframe(display_df)
             st.bar_chart(entry["results"]["probability"])
 else:
     st.info("No batch predictions made yet.")
