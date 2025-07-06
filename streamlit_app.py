@@ -99,7 +99,7 @@ st.header("Single Patient Prediction")
 with st.form("prediction_form"):
     col1, col2, col3 = st.columns(3)
     with col1:
-        age = st.number_input("Age", min_value=0.0, max_value=120.0, value=50.0)
+        age = st.number_input("Age", min_value=1, max_value=120, value=50, step=1)
         sex = st.selectbox("Sex", options=[(0.0, "Female"), (1.0, "Male")], format_func=lambda x: x[1])[0]
         cp = st.selectbox("Chest Pain Type (cp)", options=[0, 1, 2, 3], format_func=lambda x: f"{x}")
         trestbps = st.number_input("Resting BP (trestbps)", min_value=0, max_value=300, value=120)
@@ -118,7 +118,7 @@ with st.form("prediction_form"):
 
 if submitted:
     patient = {
-        "age": age,
+        "age": float(age),
         "sex": sex,
         "cp": cp,
         "trestbps": trestbps,
