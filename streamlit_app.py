@@ -76,8 +76,10 @@ if st.sidebar.button("Check API Health"):
 with st.sidebar.expander("About the Student", expanded=False):
     st.markdown("""
     **Student Name: [Your Name]**
-    
+
     **Matric Number: [Matric Number]**
+    
+    **University: Bowen University**
     
     This machine learning model was developed for the implementation of my final year project focused on healthcare applications of artificial intelligence.
     
