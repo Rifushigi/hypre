@@ -1,18 +1,10 @@
 version: "3.8"
 
 services:
-  hypertension-api:
+  hypertension-ui:
     build: .
     ports:
-      - "8000:8000"
-    volumes:
-      - ./logistic_pipeline_model.pkl:/app/logistic_pipeline_model.pkl:ro
+      - "10000:10000"
     environment:
-      - PYTHONUNBUFFERED=1
+      - PORT=10000
     restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 40s
