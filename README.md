@@ -1,14 +1,14 @@
-# Hypertension Prediction API & Streamlit UI
+# Hypertension Prediction App
 
-A complete solution for hypertension risk prediction using a machine learning model, with both a FastAPI backend and a modern Streamlit web UI. The model uses a scikit-learn pipeline with StandardScaler and LogisticRegression, achieving approximately 85.5% accuracy.
+A complete solution for hypertension risk prediction using a machine learning model, with both a FastAPI backend (internal) and a modern Streamlit web UI (public). The model uses a scikit-learn pipeline with StandardScaler and LogisticRegression, achieving approximately 85.5% accuracy.
 
 ---
 
 ## Features
 
-- **FastAPI Backend**: REST API for single and batch predictions, model info, and health check
-- **Streamlit UI**: User-friendly web interface for predictions, batch uploads, feature documentation, and result visualization
-- **Docker Support**: Deploy both API and UI with a single Docker image
+- **Streamlit UI (Public)**: User-friendly web interface for predictions, batch uploads, feature documentation, and result visualization
+- **FastAPI Backend (Internal)**: REST API for single and batch predictions, model info, and health check (only accessible inside the container)
+- **Docker & Docker Compose**: Run both services together, just like in production
 - **Prediction History**: See all predictions made in your session
 - **Visualizations**: Probability bars and batch histograms for prediction confidence
 - **Comprehensive Feature Documentation**: Sidebar explains all input features
@@ -39,8 +39,8 @@ A complete solution for hypertension risk prediction using a machine learning mo
 
 ```
 lpmh/
-├── main.py                    # FastAPI application
-├── streamlit_app.py           # Streamlit web UI
+├── main.py                    # FastAPI application (internal)
+├── streamlit_app.py           # Streamlit web UI (public)
 ├── requirements.txt           # Python dependencies
 ├── README.md                  # This file
 ├── logistic_pipeline_model.pkl  # Trained model
@@ -48,6 +48,7 @@ lpmh/
 ├── test_api.py                # Automated API test script
 ├── example_client.py          # Example API client
 ├── Dockerfile                 # Docker build file (API & UI)
+├── entrypoint.sh              # Starts both FastAPI and Streamlit
 ├── docker-compose.yml         # Docker Compose setup
 ├── deploy.sh                  # Deployment helper script
 └── LICENSE
@@ -55,60 +56,41 @@ lpmh/
 
 ---
 
-## Running the API and UI
+## Running Locally with Docker Compose
 
-### 1. **Locally (Recommended for Development)**
-
-#### Install dependencies:
-
-```bash
-pip install -r requirements.txt
-pip install streamlit
-```
-
-#### Start the FastAPI backend:
-
-```bash
-python main.py
-```
-
-API will be at [http://localhost:8000](http://localhost:8000)
-
-#### Start the Streamlit UI:
-
-```bash
-streamlit run streamlit_app.py
-```
-
-UI will be at [http://localhost:8501](http://localhost:8501)
+1. **Build and start the app:**
+   ```bash
+   docker-compose up --build
+   ```
+2. **Access the Streamlit UI:**
+   - Open [http://localhost:10000](http://localhost:10000) in your browser.
+3. **How it works:**
+   - Streamlit runs on port 10000 (public, mapped to your host).
+   - FastAPI runs on port 8000 (internal, only accessible to Streamlit inside the container).
+   - All API calls in the UI use `http://localhost:8000`.
 
 ---
 
-### 2. **Docker (Production/Deployment)**
+## Optional: Hot-Swap the Model File During Development
 
-#### Build the image:
+If you want to update the model file without rebuilding the Docker image, add this to your `docker-compose.yml`:
 
-```bash
-docker build -t hypertension-app .
+```yaml
+volumes:
+  - ./logistic_pipeline_model.pkl:/app/logistic_pipeline_model.pkl:ro
 ```
 
-#### Run the API (default):
+This will mount your local model file into the container, so changes are picked up immediately.
 
-```bash
-docker run -p 8000:8000 hypertension-app
-```
+---
 
-#### Run the Streamlit UI:
+## Deploying on Render (Production)
 
-```bash
-docker run -p 8501:8501 -e APP_MODE=ui hypertension-app
-```
-
-#### Or use Docker Compose:
-
-```bash
-docker-compose up
-```
+- **Deploy the Dockerfile** (Render will build and run it).
+- **Only port 10000 is exposed** (Streamlit UI is public, FastAPI is internal).
+- **HTTPS is handled by Render** (no need to manage SSL in your code).
+- **Set the environment variable** `PORT=10000` in your Render service settings (already default in Dockerfile).
+- **No need for docker-compose on Render.**
 
 ---
 
@@ -123,7 +105,7 @@ docker-compose up
 
 ---
 
-## FastAPI Endpoints
+## FastAPI Endpoints (Internal Only)
 
 - **GET** `/` - API information
 - **GET** `/health` - Health check
