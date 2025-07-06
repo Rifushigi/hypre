@@ -1,5 +1,7 @@
+version: "3.8"
+
 services:
-  hypertension-ui:
+  hypre:
     build: .
     ports:
       - "10000:10000"
