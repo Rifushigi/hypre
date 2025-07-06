@@ -76,6 +76,7 @@ if st.sidebar.button("Check API Health"):
 with st.sidebar.expander("About the Student", expanded=False):
     st.markdown("""
     **Student Name: [Your Name]**
+    
     **Matric Number: [Matric Number]**
     
     This machine learning model was developed for the implementation of my final year project focused on healthcare applications of artificial intelligence.
@@ -218,4 +219,4 @@ else:
     st.info("No batch predictions made yet.")
 
 st.markdown("---")
-st.caption("Made with ❤️ using FastAPI, Streamlit, and scikit-learn.") 
+st.caption("Made using FastAPI, Streamlit, and scikit-learn.") 
