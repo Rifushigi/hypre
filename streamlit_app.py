@@ -3,7 +3,9 @@ import requests
 import pandas as pd
 import numpy as np
 
-API_URL = "http://localhost:8000"
+# API URL - will use localhost for development, environment variable for deployment
+import os
+API_URL = os.getenv("API_URL", "http://localhost:8000")
 
 st.set_page_config(
     page_title="HYPRE - Hypertension Prediction",
@@ -12,11 +14,15 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# --- Session State for Prediction History ---
+# --- Initialize Session State ---
 if "history" not in st.session_state:
-    st.session_state["history"] = []
+    st.session_state.history = []
 if "batch_history" not in st.session_state:
-    st.session_state["batch_history"] = []
+    st.session_state.batch_history = []
+if "current_batch_results" not in st.session_state:
+    st.session_state.current_batch_results = None
+if "show_batch_results" not in st.session_state:
+    st.session_state.show_batch_results = False
 
 st.title("🩺 HYPRE - Hypertension Prediction App")
 st.markdown("""
@@ -71,6 +77,14 @@ if st.sidebar.button("Check API Health"):
             st.sidebar.error("API health check failed.")
     except Exception as e:
         st.sidebar.error(f"Error: {e}")
+
+# --- Sidebar: Session Management ---
+if st.sidebar.button("Clear All History"):
+    st.session_state.history = []
+    st.session_state.batch_history = []
+    st.session_state.current_batch_results = None
+    st.session_state.show_batch_results = False
+    st.sidebar.success("History cleared!")
 
 # --- Sidebar: About the Student ---
 with st.sidebar.expander("About the Student", expanded=False):
@@ -146,7 +160,14 @@ if submitted:
             st.write(f"Confidence: **{result['confidence']}**")
             # --- Visualisation: Probability Gauge ---
             st.progress(result['probability'])
-            st.session_state["history"].append({"input": patient, "result": result})
+            
+            # Save to session state
+            history_entry = {
+                "input": patient.copy(),
+                "result": result.copy(),
+                "timestamp": pd.Timestamp.now().strftime("%Y-%m-%d %H:%M:%S")
+            }
+            st.session_state.history.append(history_entry)
         else:
             st.error(f"Prediction failed: {resp.text}")
     except Exception as e:
@@ -154,9 +175,10 @@ if submitted:
 
 # --- Prediction History ---
 st.subheader("Prediction History (This Session)")
-if st.session_state["history"]:
-    for i, entry in enumerate(reversed(st.session_state["history"])):
-        with st.expander(f"Prediction #{len(st.session_state['history'])-i}"):
+st.write(f"Total predictions in session: {len(st.session_state.history)}")
+if st.session_state.history:
+    for i, entry in enumerate(reversed(st.session_state.history)):
+        with st.expander(f"Prediction #{len(st.session_state.history)-i} - {entry.get('timestamp', 'N/A')}"):
             st.json(entry["input"])
             st.write(f"Prediction: {'Hypertension' if entry['result']['prediction'] == 1 else 'No Hypertension'}")
             st.write(f"Probability: {entry['result']['probability']:.3f}")
@@ -182,6 +204,7 @@ if uploaded_file is not None:
         df = pd.read_csv(uploaded_file)
         st.write("Preview of uploaded data:")
         st.dataframe(df.head())
+        
         if st.button("Predict Batch"):
             if len(df) > 100:
                 st.warning("Batch size too large. Maximum 100 rows allowed.")
@@ -199,56 +222,18 @@ if uploaded_file is not None:
                         results_df['prediction_label'] = results_df['prediction'].map({1: 'Hypertension', 0: 'No Hypertension'})
                         results_df['confidence_level'] = results_df['confidence']
                         
-                        # Display results with better formatting
-                        st.subheader("Batch Prediction Results")
-                        display_df = results_df[['patient_id', 'prediction_label', 'probability', 'confidence_level']].copy()
-                        display_df.columns = ['Patient ID', 'Prediction', 'Probability', 'Confidence']
-                        st.dataframe(display_df, use_container_width=True)
+                        # Save to session state
+                        batch_entry = {
+                            "input": df.copy(),
+                            "results": results_df.copy(),
+                            "timestamp": pd.Timestamp.now().strftime("%Y-%m-%d %H:%M:%S")
+                        }
+                        st.session_state.batch_history.append(batch_entry)
+                        st.session_state.current_batch_results = results_df.copy()
+                        st.session_state.show_batch_results = True
                         
-                        # --- Enhanced Probability Distribution Chart ---
-                        st.subheader("Probability Distribution")
-                        st.bar_chart(results_df['probability'])
-                        
-                        # --- Age Group Analysis ---
-                        st.subheader("Prediction Distribution by Age Group")
-                        # Add age groups to results
-                        age_data = df.copy()
-                        age_data['age_group'] = pd.cut(age_data['age'], bins=[0, 40, 50, 60, 100], labels=['<40', '40-50', '50-60', '60+'])
-                        age_data['prediction'] = results_df['prediction']
-                        age_data['prediction_label'] = results_df['prediction_label']
-                        
-                        # Create age group chart
-                        age_prediction = age_data.groupby(['age_group', 'prediction_label']).size().unstack(fill_value=0)
-                        st.bar_chart(age_prediction)
-                        
-                        # --- Gender Analysis ---
-                        st.subheader("Prediction Distribution by Gender")
-                        gender_data = df.copy()
-                        gender_data['sex_label'] = gender_data['sex'].map({1: 'Male', 0: 'Female'})
-                        gender_data['prediction'] = results_df['prediction']
-                        gender_data['prediction_label'] = results_df['prediction_label']
-                        
-                        # Create gender chart
-                        gender_prediction = gender_data.groupby(['sex_label', 'prediction_label']).size().unstack(fill_value=0)
-                        st.bar_chart(gender_prediction)
-                        
-                        # --- Summary Statistics ---
-                        st.subheader("Summary Statistics")
-                        col1, col2, col3, col4 = st.columns(4)
-                        with col1:
-                            st.metric("Total Patients", len(results_df))
-                        with col2:
-                            hypertension_count = (results_df['prediction'] == 1).sum()
-                            st.metric("Hypertension Cases", hypertension_count)
-                        with col3:
-                            no_hypertension_count = (results_df['prediction'] == 0).sum()
-                            st.metric("No Hypertension", no_hypertension_count)
-                        with col4:
-                            avg_prob = results_df['probability'].mean()
-                            st.metric("Average Probability", f"{avg_prob:.3f}")
-                        
-                        # Save to session history
-                        st.session_state["batch_history"].append({"input": df, "results": results_df})
+                        # Force rerun to show results
+                        st.rerun()
                     else:
                         st.error(f"Batch prediction failed: {resp.text}")
                 except Exception as e:
@@ -256,11 +241,67 @@ if uploaded_file is not None:
     except Exception as e:
         st.error(f"Failed to read CSV: {e}")
 
+# --- Display Current Batch Results ---
+if st.session_state.show_batch_results and st.session_state.current_batch_results is not None:
+    results_df = st.session_state.current_batch_results
+    
+    st.subheader("Batch Prediction Results")
+    
+    # Display results with better formatting
+    display_df = results_df[['patient_id', 'prediction_label', 'probability', 'confidence_level']].copy()
+    display_df.columns = ['Patient ID', 'Prediction', 'Probability', 'Confidence']
+    st.dataframe(display_df, use_container_width=True)
+    
+    # --- Enhanced Probability Distribution Chart ---
+    st.subheader("Probability Distribution")
+    st.bar_chart(results_df['probability'])
+    
+    # --- Age Group Analysis ---
+    st.subheader("Prediction Distribution by Age Group")
+    # Get the original input data from the most recent batch
+    if st.session_state.batch_history:
+        original_df = st.session_state.batch_history[-1]["input"]
+        age_data = original_df.copy()
+        age_data['age_group'] = pd.cut(age_data['age'], bins=[0, 40, 50, 60, 100], labels=['<40', '40-50', '50-60', '60+'])
+        age_data['prediction'] = results_df['prediction']
+        age_data['prediction_label'] = results_df['prediction_label']
+        
+        # Create age group chart
+        age_prediction = age_data.groupby(['age_group', 'prediction_label']).size().unstack(fill_value=0)
+        st.bar_chart(age_prediction)
+        
+        # --- Gender Analysis ---
+        st.subheader("Prediction Distribution by Gender")
+        gender_data = original_df.copy()
+        gender_data['sex_label'] = gender_data['sex'].map({1: 'Male', 0: 'Female'})
+        gender_data['prediction'] = results_df['prediction']
+        gender_data['prediction_label'] = results_df['prediction_label']
+        
+        # Create gender chart
+        gender_prediction = gender_data.groupby(['sex_label', 'prediction_label']).size().unstack(fill_value=0)
+        st.bar_chart(gender_prediction)
+        
+        # --- Summary Statistics ---
+        st.subheader("Summary Statistics")
+        col1, col2, col3, col4 = st.columns(4)
+        with col1:
+            st.metric("Total Patients", len(results_df))
+        with col2:
+            hypertension_count = (results_df['prediction'] == 1).sum()
+            st.metric("Hypertension Cases", hypertension_count)
+        with col3:
+            no_hypertension_count = (results_df['prediction'] == 0).sum()
+            st.metric("No Hypertension", no_hypertension_count)
+        with col4:
+            avg_prob = results_df['probability'].mean()
+            st.metric("Average Probability", f"{avg_prob:.3f}")
+
 # --- Batch Prediction History ---
 st.subheader("Batch Prediction History (This Session)")
-if st.session_state["batch_history"]:
-    for i, entry in enumerate(reversed(st.session_state["batch_history"])):
-        with st.expander(f"Batch Prediction #{len(st.session_state['batch_history'])-i}"):
+st.write(f"Total batch predictions in session: {len(st.session_state.batch_history)}")
+if st.session_state.batch_history:
+    for i, entry in enumerate(reversed(st.session_state.batch_history)):
+        with st.expander(f"Batch Prediction #{len(st.session_state.batch_history)-i} - {entry.get('timestamp', 'N/A')}"):
             st.write("Input Data:")
             st.dataframe(entry["input"].head())
             st.write("Results:")
