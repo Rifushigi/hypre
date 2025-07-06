@@ -1,4 +1,4 @@
-# Hypertension Prediction App
+# HYPRE - Hypertension Prediction App
 
 A complete solution for hypertension risk prediction using a machine learning model, with both a FastAPI backend (internal) and a modern Streamlit web UI (public). The model uses a scikit-learn pipeline with StandardScaler and LogisticRegression, achieving approximately 85.5% accuracy.
 
@@ -38,7 +38,7 @@ A complete solution for hypertension risk prediction using a machine learning mo
 ## Project Structure
 
 ```
-lpmh/
+hypre/
 ├── main.py                    # FastAPI application (internal)
 ├── streamlit_app.py           # Streamlit web UI (public)
 ├── requirements.txt           # Python dependencies
