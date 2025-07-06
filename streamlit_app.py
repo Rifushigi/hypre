@@ -6,7 +6,7 @@ import numpy as np
 API_URL = "http://localhost:8000"
 
 st.set_page_config(
-    page_title="Hypertension Prediction App",
+    page_title="HYPRE - Hypertension Prediction",
     page_icon="🩺",
     layout="centered",
     initial_sidebar_state="expanded"
@@ -18,7 +18,7 @@ if "history" not in st.session_state:
 if "batch_history" not in st.session_state:
     st.session_state["batch_history"] = []
 
-st.title("🩺 Hypertension Prediction App")
+st.title("🩺 HYPRE - Hypertension Prediction App")
 st.markdown("""
 This app uses a machine learning model to predict the likelihood of hypertension based on clinical features. Powered by FastAPI and Streamlit.
 """)
