@@ -73,34 +73,6 @@ if st.sidebar.button("Check API Health"):
     except Exception as e:
         st.sidebar.error(f"Error: {e}")
 
-# --- Sidebar: About the Student ---
-with st.sidebar.expander("About the Student", expanded=False):
-    st.markdown(
-        """
-    **Student Name: Alabi Teslim Ayomide**
-
-    **Matric Number: BU21CSC1072**
-    
-    **University: Bowen University**
-    
-    This machine learning model was developed for the implementation of my final year project focused on healthcare applications of artificial intelligence.
-    
-    **Project Details:**
-    - **Dataset**: 26,058 patient records with 13 clinical features
-    - **Model**: Logistic Regression with StandardScaler pipeline
-    - **Accuracy**: ~85.5% on test data
-    - **Technology Stack**: Python, scikit-learn, FastAPI, Streamlit
-    
-    **Learning Objectives:**
-    - Applied machine learning to real-world healthcare data
-    - Built a complete web application with API and UI
-    - Deployed using Docker and cloud platforms
-    - Implemented proper error handling and validation
-    
-    This project demonstrates the practical application of machine learning in medical diagnostics.
-    """
-    )
-
 # --- Main: Input Form ---
 st.header("Single Patient Prediction")
 with st.form("prediction_form"):
